@@ -4,19 +4,29 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
+	"strings"
 	"syscall"
 
 	"wget/pkg/utils"
 )
 
-var isBackground bool
+var (
+	isBackground bool
+	name         string
+)
 
 func Switcher() error {
 	flag.BoolVar(&isBackground, "B", false, "background download")
+	flag.StringVar(&name, "O", "tempfile", "give name to file")
 	flag.Parse()
 
 	URL := flag.Arg(0)
+	arr := strings.Split(URL, "/")
+	fileName := arr[len(arr)-1]
+
+	if name != "tempfile" {
+		fileName = name
+	}
 
 	switch {
 	case isBackground:
@@ -26,26 +36,16 @@ func Switcher() error {
 		}
 		fmt.Println(`Output will be written to "wget-log"`)
 
-		sigc := make(chan os.Signal, 1)
-		signal.Notify(sigc, syscall.SIGURG)
-
-		go func() {
-			<-sigc
-			// fmt.Print("\033[H\033[2J")
-
-			// fmt.Println(1)
-		}()
-
 		syscall.Kill(syscall.Getppid(), syscall.SIGTSTP)
 
-		if err := Download(URL, log); err != nil {
+		if err := Download(URL, fileName, log); err != nil {
 			return err
 		}
 
 		syscall.Kill(syscall.Getppid(), syscall.SIGCONT)
 
 	default:
-		if err := Download(URL, os.Stdout); err != nil {
+		if err := Download(URL, fileName, os.Stdout); err != nil {
 			return err
 		}
 	}

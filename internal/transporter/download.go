@@ -7,13 +7,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
 )
 
-func Download(URL string, output *os.File) error {
+func Download(URL, fileName string, output *os.File) error {
 	fmt.Fprintf(output, "start at %v\n", time.Now().Format("2006-01-02 15:04:05"))
 
 	fmt.Fprint(output, "sending request, awaiting response... status ")
@@ -46,9 +45,6 @@ func Download(URL string, output *os.File) error {
 
 	// utils.ContentSizeCheck(response.ContentLength)
 	fmt.Fprintf(output, "content size: %d [~%.2fMB]\n", response.ContentLength, float64(response.ContentLength)/1000000)
-
-	arr := strings.Split(URL, "/")
-	fileName := arr[len(arr)-1]
 
 	fmt.Fprintf(output, "saving file to: ./%s\n", fileName)
 
