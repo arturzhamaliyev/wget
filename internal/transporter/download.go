@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
+	"github.com/mxk/go-flowrate/flowrate"
 )
 
 func Download(credentials *Credentials) error {
@@ -46,13 +47,17 @@ func Download(credentials *Credentials) error {
 	// utils.ContentSizeCheck(response.ContentLength)
 	fmt.Fprintf(credentials.OutPut, "content size: %d [~%.2fMB]\n", response.ContentLength, float64(response.ContentLength)/1000000)
 
-	fmt.Fprintf(credentials.OutPut, "saving file to: ./%s\n", credentials.FileName)
+	fmt.Fprintf(credentials.OutPut, "saving file to: %s\n", credentials.Path+credentials.FileName)
 
-	file, err := os.Create(credentials.FileName)
+	file, err := os.Create(credentials.Path + credentials.FileName)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+
+	if credentials.RateLimit != 0 {
+		response.Body = flowrate.NewReader(response.Body, credentials.RateLimit)
+	}
 
 	if credentials.OutPut == os.Stdout {
 		template := `{{ counters .}} {{ bar . "[" "=" (cycle . ">" ) "." "]"}} {{percent .}} {{speed .}} {{rtime .}}`
