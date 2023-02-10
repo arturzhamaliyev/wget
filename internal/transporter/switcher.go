@@ -10,44 +10,66 @@ import (
 	"wget/pkg/utils"
 )
 
+type Credentials struct {
+	URL          string
+	FileName     string
+	Path         string
+	IsBackground bool
+	OutPut       *os.File
+}
+
+func NewCredentialsConstructor(URL string) *Credentials {
+	return &Credentials{
+		URL:          URL,
+		FileName:     getFileName(URL),
+		Path:         "./",
+		IsBackground: false,
+		OutPut:       os.Stdout,
+	}
+}
+
+func getFileName(URL string) string {
+	arr := strings.Split(URL, "/")
+	return arr[len(arr)-1]
+}
+
 var (
-	isBackground bool
-	name         string
+	backgroundFlagVal bool
+	nameFlagVal       string
+	pathFlagVal       string
 )
 
 func Switcher() error {
-	flag.BoolVar(&isBackground, "B", false, "background download")
-	flag.StringVar(&name, "O", "tempfile", "give name to file")
+	flag.BoolVar(&backgroundFlagVal, "B", false, "background download")
+	flag.StringVar(&nameFlagVal, "O", "tempfile", "give name to saved file")
+	flag.StringVar(&pathFlagVal, "P", "./", "path to where you want to save the file")
 	flag.Parse()
 
-	URL := flag.Arg(0)
-	arr := strings.Split(URL, "/")
-	fileName := arr[len(arr)-1]
+	credentials := NewCredentialsConstructor(flag.Arg(0))
 
-	if name != "tempfile" {
-		fileName = name
+	if nameFlagVal != "tempfile" {
+		credentials.FileName = nameFlagVal
 	}
 
-	switch {
-	case isBackground:
-		log, err := os.Create(utils.DefaultLog)
+	if pathFlagVal != "./" {
+		credentials.Path = pathFlagVal
+	}
+
+	if backgroundFlagVal {
+		logFile, err := os.Create(utils.DefaultLog)
 		if err != nil {
 			return err
 		}
 		fmt.Println(`Output will be written to "wget-log"`)
+		credentials.OutPut = logFile
 
-		syscall.Kill(syscall.Getppid(), syscall.SIGTSTP)
+		parentProc := syscall.Getppid()
+		syscall.Kill(parentProc, syscall.SIGTSTP)
+		defer syscall.Kill(parentProc, syscall.SIGCONT)
+	}
 
-		if err := Download(URL, fileName, log); err != nil {
-			return err
-		}
-
-		syscall.Kill(syscall.Getppid(), syscall.SIGCONT)
-
-	default:
-		if err := Download(URL, fileName, os.Stdout); err != nil {
-			return err
-		}
+	if err := Download(credentials); err != nil {
+		return err
 	}
 
 	return nil
