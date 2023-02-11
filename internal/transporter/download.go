@@ -41,8 +41,6 @@ func Download(credentials *Credentials) error {
 	}
 	defer response.Body.Close()
 
-	// fmt.Println(response.Header)
-
 	if response.Status != "200 OK" {
 		return errors.New(response.Status)
 	}
@@ -72,6 +70,8 @@ func Download(credentials *Credentials) error {
 		response.Body = flowrate.NewReader(response.Body, credentials.RateLimit)
 	}
 
+	// fmt.Println(response.Header)
+	// fmt.Println(response.Body)
 	credentials.Mutex.Unlock()
 
 	if credentials.OutPut == os.Stdout && !credentials.IsInDir {
@@ -87,8 +87,8 @@ func Download(credentials *Credentials) error {
 		}
 
 		bar.Finish()
-
 	} else {
+
 		_, err = io.Copy(file, response.Body)
 		if err != nil {
 			return err

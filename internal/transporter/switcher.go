@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -14,9 +15,10 @@ import (
 )
 
 type Credentials struct {
-	URL          string
-	FileName     string
-	Path         string
+	URL      string
+	FileName string
+	Path     string
+	// InnerURLs    []string
 	RateLimit    int64
 	IsBackground bool
 	IsInDir      bool
@@ -26,9 +28,10 @@ type Credentials struct {
 
 func NewCredentialsConstructor(URL string) *Credentials {
 	return &Credentials{
-		URL:          URL,
-		FileName:     getFileName(URL),
-		Path:         "./",
+		URL:      URL,
+		FileName: getFileName(URL),
+		Path:     "./",
+		// InnerURLs:    nil,
 		RateLimit:    0,
 		IsBackground: false,
 		IsInDir:      false,
@@ -75,27 +78,58 @@ func Switcher() error {
 	return nil
 }
 
-// func bfs(credentials *Credentials) {
-// 	q := []*Credentials{credentials}
+func bfs(credentials *Credentials) error {
+	q := []*Credentials{credentials}
 
-// 	for len(q) > 0 {
-// 		curCred := q[0]
+	for len(q) > 0 {
+		curCred := q[0]
 
-// 		curCred.
+		if err := Download(curCred); err != nil {
+			return err
+		}
 
-// 		q=q[1:]
-// 	}
-// }
+		file, err := os.Open(curCred.Path + curCred.FileName)
+		if err != nil {
+			return err
+		}
+
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			regexp.Compile('')
+		}
+
+		// for _, innerURL := range curCred.InnerURLs {
+		// 	q = append(q, &Credentials{
+		// 		URL:          innerURL,
+		// 		FileName:     getFileName(innerURL),
+		// 		Path:         pathFlagVal,
+		// 		InnerURLs:    nil,
+		// 		RateLimit:    0,
+		// 		IsBackground: false,
+		// 		IsInDir:      false,
+		// 		OutPut:       os.Stdout,
+		// 		Mutex:        &sync.Mutex{},
+		// 	})
+		// }
+
+		q = q[1:]
+	}
+
+	return nil
+}
 
 func flagsChecker(credentials *Credentials) error {
-	// if mirrorFlagVal {
-	// 	if err := os.Mkdir(getFileName(credentials.URL), 0o700); err != nil {
-	// 		return err
-	// 	}
+	if mirrorFlagVal {
+		if err := os.Mkdir(getFileName(credentials.URL), 0o700); err != nil {
+			return err
+		}
 
-	// 	// TODO: call download recursively
-	// 	// bfs(credentials)
-	// }
+		// TODO: call download recursively
+		if err := bfs(credentials); err != nil {
+			return err
+		}
+	}
 
 	if logOutputFlagVal != "os.Stdout" {
 		file, err := os.Create(logOutputFlagVal)
