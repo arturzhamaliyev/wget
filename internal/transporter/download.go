@@ -75,7 +75,7 @@ func Download(credentials *Credentials) error {
 	credentials.Mutex.Unlock()
 
 	if credentials.OutPut == os.Stdout && !credentials.IsInDir {
-		template := `{{ counters .}} {{ bar . "[" "=" (cycle . "BRUH" ) "." "]"}} {{percent .}} {{speed .}} {{rtime .}}`
+		template := `{{ counters .}} {{ bar . "[" "=" (cycle . ">" ) "." "]"}} {{percent .}} {{speed .}} {{rtime .}}`
 
 		bar := pb.ProgressBarTemplate(template).Start64(response.ContentLength)
 

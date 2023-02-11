@@ -46,18 +46,20 @@ var (
 	backgroundFlagVal bool
 	nameFlagVal       string
 	pathFlagVal       string
-	rateLimitVal      string
-	directoryVal      string
-	logOutputVal      string
+	rateLimitFlagVal  string
+	directoryFlagVal  string
+	logOutputFlagVal  string
+	mirrorFlagVal     bool
 )
 
 func Switcher() error {
 	flag.BoolVar(&backgroundFlagVal, "B", false, "background download")
 	flag.StringVar(&nameFlagVal, "O", "tempfile", "give name to saved file")
 	flag.StringVar(&pathFlagVal, "P", "./", "path to where you want to save the file")
-	flag.StringVar(&rateLimitVal, "rate-limit", "max", "handle limit limit")
-	flag.StringVar(&directoryVal, "i", "", "download from file that will contain all links")
-	flag.StringVar(&logOutputVal, "logoutput", "os.Stdout", "default log output")
+	flag.StringVar(&rateLimitFlagVal, "rate-limit", "max", "handle limit limit")
+	flag.StringVar(&directoryFlagVal, "i", "", "download from file that will contain all links")
+	flag.StringVar(&logOutputFlagVal, "logoutput", "os.Stdout", "default log output")
+	flag.BoolVar(&mirrorFlagVal, "mirror", false, "download the entire website")
 	flag.Parse()
 
 	credentials := NewCredentialsConstructor(flag.Arg(0))
@@ -73,13 +75,33 @@ func Switcher() error {
 	return nil
 }
 
+// func bfs(credentials *Credentials) {
+// 	q := []*Credentials{credentials}
+
+// 	for len(q) > 0 {
+// 		curCred := q[0]
+
+// 		curCred.
+
+// 		q=q[1:]
+// 	}
+// }
+
 func flagsChecker(credentials *Credentials) error {
-	if logOutputVal != "os.Stdout" {
-		file, err := os.Create(logOutputVal)
+	// if mirrorFlagVal {
+	// 	if err := os.Mkdir(getFileName(credentials.URL), 0o700); err != nil {
+	// 		return err
+	// 	}
+
+	// 	// TODO: call download recursively
+	// 	// bfs(credentials)
+	// }
+
+	if logOutputFlagVal != "os.Stdout" {
+		file, err := os.Create(logOutputFlagVal)
 		if err != nil {
 			return err
 		}
-		defer file.Close()
 
 		credentials.OutPut = file
 	}
@@ -109,7 +131,6 @@ func flagsChecker(credentials *Credentials) error {
 	}
 
 	if backgroundFlagVal {
-		var command string
 		logFile, err := os.Create(utils.DefaultLog)
 		if err != nil {
 			return err
@@ -119,23 +140,27 @@ func flagsChecker(credentials *Credentials) error {
 		fmt.Println(`Output will be written to "wget-log"`)
 		credentials.OutPut = logFile
 
-		for _, arg := range os.Args {
-			if arg != "-B" {
-				command += arg + " "
+		var command string
+		argLen := len(os.Args)
+		command += os.Args[0] + " --logoutput=wget-log "
+
+		for i := 1; i < argLen; i++ {
+			if os.Args[i] != "-B" {
+				command += os.Args[i] + " "
 			}
 		}
-		command += "--logoutput=wget-log &"
+		command += "&"
 
 		cmd := exec.Command("/bin/bash", "-c", command)
 		if err := cmd.Run(); err != nil {
-			fmt.Println(err)
+			return err
 		}
 
 		os.Exit(0)
 	}
 
-	if rateLimitVal != "max" {
-		limit, err := setLimit(rateLimitVal)
+	if rateLimitFlagVal != "max" {
+		limit, err := setLimit(rateLimitFlagVal)
 		if err != nil {
 			return err
 		}
@@ -143,8 +168,8 @@ func flagsChecker(credentials *Credentials) error {
 
 	}
 
-	if directoryVal != "" && credentials.URL == "" {
-		file, err := os.Open(directoryVal)
+	if directoryFlagVal != "" && credentials.URL == "" {
+		file, err := os.Open(directoryFlagVal)
 		if err != nil {
 			return err
 		}
@@ -191,12 +216,12 @@ func flagsChecker(credentials *Credentials) error {
 	return nil
 }
 
-func setLimit(rateLimitVal string) (int64, error) {
+func setLimit(rateLimitFlagVal string) (int64, error) {
 	var limit int64
 	var isValid bool
 	err := errors.New("wrong type of limit")
 
-	for _, ch := range rateLimitVal {
+	for _, ch := range rateLimitFlagVal {
 		if isValid {
 			return 0, err
 		}
